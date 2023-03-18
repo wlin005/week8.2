@@ -1,19 +1,17 @@
 import * as THREE from 'three';
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-			import { VRButton } from 'three/addons/webxr/VRButton.js';
-			import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+			import { ARButton } from 'three/addons/webxr/ARButton.js';
 
 			let container;
 			let camera, scene, renderer;
 			let controller1, controller2;
-			let controllerGrip1, controllerGrip2;
 
 			let raycaster;
 
 			const intersected = [];
 			const tempMatrix = new THREE.Matrix4();
 
-			let controls, group;
+			let group;
 
 			init();
 			animate();
@@ -24,52 +22,34 @@ import * as THREE from 'three';
 				document.body.appendChild( container );
 
 				scene = new THREE.Scene();
-				scene.background = new THREE.Color( 0x808080 );
 
 				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 10 );
-				camera.position.set( 0, 1.6, 3 );
+				camera.position.set( 0, 0, 3 );
 
-				controls = new OrbitControls( camera, container );
-				controls.target.set( 0, 1.6, 0 );
-				controls.update();
-
-				const floorGeometry = new THREE.PlaneGeometry( 4, 4 );
-				const floorMaterial = new THREE.MeshStandardMaterial( {
-					color: 0xeeeeee,
-					roughness: 1.0,
-					metalness: 0.0
-				} );
-				const floor = new THREE.Mesh( floorGeometry, floorMaterial );
-				floor.rotation.x = - Math.PI / 2;
-				floor.receiveShadow = true;
-				scene.add( floor );
+				const controls = new OrbitControls( camera, container );
+				controls.minDistance = 0;
+				controls.maxDistance = 8;
 
 				scene.add( new THREE.HemisphereLight( 0x808080, 0x606060 ) );
 
 				const light = new THREE.DirectionalLight( 0xffffff );
 				light.position.set( 0, 6, 0 );
-				light.castShadow = true;
-				light.shadow.camera.top = 2;
-				light.shadow.camera.bottom = - 2;
-				light.shadow.camera.right = 2;
-				light.shadow.camera.left = - 2;
-				light.shadow.mapSize.set( 4096, 4096 );
 				scene.add( light );
 
 				group = new THREE.Group();
 				scene.add( group );
 
 				const geometries = [
-					new THREE.BoxGeometry( 0.2, 0.2, 0.2 ),
-					new THREE.BoxGeometry( 0.4, 0.4, 0.4 ),
-					new THREE.BoxGeometry( 0.2, 0.6, 0.2 ),
-					new THREE.ConeGeometry( 0.2, 0.2, 64 ),
-					//new THREE.CylinderGeometry( 0.2, 0.2, 0.2, 64 ),
-					new THREE.IcosahedronGeometry( 0.2, 8 ),
-					//new THREE.TorusGeometry( 0.2, 0.04, 64, 32 )
-				];
+					                    new THREE.BoxGeometry( 0.2, 0.2, 0.2 ),
+					                    new THREE.BoxGeometry( 0.4, 0.4, 0.4 ),
+					                    new THREE.BoxGeometry( 0.2, 0.6, 0.2 ),
+					                    new THREE.ConeGeometry( 0.2, 0.2, 64 ),
+					                    //new THREE.CylinderGeometry( 0.2, 0.2, 0.2, 64 ),
+					                    new THREE.IcosahedronGeometry( 0.2, 8 ),
+					                    //new THREE.TorusGeometry( 0.2, 0.04, 64, 32 )
+					                ];
 
-				for ( let i = 0; i < 50; i ++ ) {
+				for ( let i = 0; i < 80; i ++ ) {
 
 					const geometry = geometries[ Math.floor( Math.random() * geometries.length ) ];
 					const material = new THREE.MeshStandardMaterial( {
@@ -81,17 +61,14 @@ import * as THREE from 'three';
 					const object = new THREE.Mesh( geometry, material );
 
 					object.position.x = Math.random() * 4 - 2;
-					object.position.y = Math.random() * 2;
+					object.position.y = Math.random() * 4 - 2;
 					object.position.z = Math.random() * 4 - 2;
 
-					//object.rotation.x = Math.random() * 2 * Math.PI;
-					//object.rotation.y = Math.random() * 2 * Math.PI;
-					//object.rotation.z = Math.random() * 2 * Math.PI;
+					// object.rotation.x = Math.random() * 2 * Math.PI;
+					// object.rotation.y = Math.random() * 2 * Math.PI;
+					// object.rotation.z = Math.random() * 2 * Math.PI;
 
 					object.scale.setScalar( Math.random() + 0.5 );
-
-					object.castShadow = true;
-					object.receiveShadow = true;
 
 					group.add( object );
 
@@ -99,15 +76,14 @@ import * as THREE from 'three';
 
 				//
 
-				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.outputEncoding = THREE.sRGBEncoding;
-				renderer.shadowMap.enabled = true;
 				renderer.xr.enabled = true;
 				container.appendChild( renderer.domElement );
 
-				document.body.appendChild( VRButton.createButton( renderer ) );
+				document.body.appendChild( ARButton.createButton( renderer ) );
 
 				// controllers
 
@@ -120,27 +96,6 @@ import * as THREE from 'three';
 				controller2.addEventListener( 'selectstart', onSelectStart );
 				controller2.addEventListener( 'selectend', onSelectEnd );
 				scene.add( controller2 );
-
-				const controllerModelFactory = new XRControllerModelFactory();
-
-				controllerGrip1 = renderer.xr.getControllerGrip( 0 );
-				controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
-				scene.add( controllerGrip1 );
-
-				controllerGrip2 = renderer.xr.getControllerGrip( 1 );
-				controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
-				scene.add( controllerGrip2 );
-
-				//
-
-				const geometry = new THREE.BufferGeometry().setFromPoints( [ new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, - 1 ) ] );
-
-				const line = new THREE.Line( geometry );
-				line.name = 'line';
-				line.scale.z = 5;
-
-				controller1.add( line.clone() );
-				controller2.add( line.clone() );
 
 				raycaster = new THREE.Raycaster();
 
@@ -213,7 +168,6 @@ import * as THREE from 'three';
 
 				if ( controller.userData.selected !== undefined ) return;
 
-				const line = controller.getObjectByName( 'line' );
 				const intersections = getIntersections( controller );
 
 				if ( intersections.length > 0 ) {
@@ -223,12 +177,6 @@ import * as THREE from 'three';
 					const object = intersection.object;
 					object.material.emissive.r = 1;
 					intersected.push( object );
-
-					line.scale.z = intersection.distance;
-
-				} else {
-
-					line.scale.z = 5;
 
 				}
 
